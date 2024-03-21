@@ -39,7 +39,8 @@ def load_so_data(tag: str = "neo4j", page: int = 1) -> None:
         "&site=stackoverflow&filter=!*236eb_eL9rai)MOSNZ-6D3Q6ZKb0buI*IVotWaTb"
     )
     data = requests.get(so_api_base_url + parameters).json()
-    insert_so_data(data)
+    print(data)
+    # insert_so_data(data)
 
 
 def load_high_score_so_data() -> None:
@@ -117,8 +118,8 @@ def get_pages():
 
 def render_page():
     datamodel_image = Image.open("./images/datamodel.png")
-    st.header("StackOverflow Loader")
-    st.subheader("Choose StackOverflow tags to load into Neo4j")
+    st.header("Subreddit Loader")
+    st.subheader("Choose subreddits,subreddit2 to load into Neo4j")
     st.caption("Go to http://localhost:7474/ to explore the graph.")
 
     user_input = get_tag()

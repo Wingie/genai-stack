@@ -17,3 +17,8 @@ boto3
 langchain-openai
 langchain-community
 langchain-google-genai
+selenium==4.7.2 
+transformers==4.25.1 
+graphdatascience
+xvfbwrapper
+xmltodict
