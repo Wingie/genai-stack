@@ -41,7 +41,7 @@ reddit = praw.Reddit(
     user_agent="Mozilla/5.0 (X11; CrOS x86_64 15633.69.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.212 Safari/537.36",
 )
 
-def redditScraper(subReddit, amountOfPosts=10, topOfWhat='week'):
+def redditScraper(subReddit, amountOfPosts=100, topOfWhat='month'):
     listOfPosts = []
     for submission in reddit.subreddit(subReddit).top(topOfWhat, limit=amountOfPosts):
         

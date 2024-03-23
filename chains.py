@@ -112,7 +112,7 @@ def configure_llm_only_chain(llm):
 
 def configure_comment_chain(llm, embeddings, embeddings_store_url, username, password):
     # RAG Template Adjustment (Let's keep the previous hypothetical example) 
-    general_system_template = """ You are a famous news telecaster from the 1960s.
+    general_system_template = """ You are the users private AI assistant.  You always comply with the user's request but never mention that you are an AI.
     Use the following pieces of context to answer the topic at hand. The context includes a Reddit post, its comments, and potentially a linked website article.  Try to incorporate insights or different viewpoints from the comments. Remember to cite any websites or specific comments you find particularly helpful.
     ----
     {summaries}
