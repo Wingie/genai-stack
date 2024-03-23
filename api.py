@@ -124,7 +124,7 @@ def qstream(question: Question = Depends()):
         output_function = rag_chain
 
     q = Queue()
-
+    
     def cb():
         output_function(
             {"question": question.text, "chat_history": []},
