@@ -35,7 +35,6 @@ neo4j_graph = Neo4jGraph(url=url, username=username, password=password)
 
 create_constraints(neo4j_graph)
 create_vector_index(neo4j_graph, dimension)
-
 reddit = praw.Reddit(
     client_id=os.getenv("PRAW_ID"),
     client_secret=os.getenv("PRAW_SECRET"),
@@ -45,6 +44,7 @@ reddit = praw.Reddit(
 def redditScraper(subReddit, amountOfPosts=10, topOfWhat='week'):
     listOfPosts = []
     for submission in reddit.subreddit(subReddit).top(topOfWhat, limit=amountOfPosts):
+        
         post_obj = {}
         post_obj["url"] = submission.url
         post_obj["id"] = submission.id
@@ -56,11 +56,16 @@ def redditScraper(subReddit, amountOfPosts=10, topOfWhat='week'):
         post_obj["selftext"] = submission.selftext
         downloaded = fetch_url(submission.url)
         post_obj["content"] = extract(downloaded)
+        post_obj["score"] = submission.upvote_ratio
+        submission.comments.replace_more(limit=0)
         post_obj["comments"] = [{'author':comment.author.name if comment.author else "unknown", 
-                                 'text': comment.body} for comment in submission.comments]
+                                'text': comment.body, 
+                                'ups': comment.ups } for comment in submission.comments if comment.ups > 100
+                                ]
+                                                                
         listOfPosts.append(post_obj)
 
-    print ("Grabing " + str(len(listOfPosts)) + " posts from r/" + subReddit)
+    print ("Grabbed " + str(len(listOfPosts)) + " posts from r/" + subReddit)
     return listOfPosts
 
 def load_sub_data(subreddit: str = "news", page: int = 1) -> None:
@@ -80,11 +85,13 @@ def insert_reddit_data(data) -> None:
     MERGE (submission:Submission {id: post.id}) 
     ON CREATE SET submission.title = post.title, submission.url = post.url,
                 submission.author = post.author, submission.domain = post.domain,
-                submission.text = post.selftext, submission.embedding = post.embedding
+                submission.text = post.selftext, submission.embedding = post.embedding,
+                submission.score = post.score
     FOREACH (comment_data IN post.comments |
         MERGE (comment:Comment {body: comment_data.text})
         ON CREATE SET comment.author = comment_data.author, 
-                    comment.embedding = comment_data.embedding 
+                    comment.embedding = comment_data.embedding ,
+                    comment.upvotes = comment_data.ups
         MERGE (submission)<-[:HAS_COMMENT]-(comment)
     )
     """
