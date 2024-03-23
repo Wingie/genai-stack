@@ -37,18 +37,18 @@ create_constraints(neo4j_graph)
 create_vector_index(neo4j_graph, dimension)
 reddit = praw.Reddit(
     client_id=os.getenv("PRAW_ID"),
-    client_secret="yYuIt0aDZe2OSB54Z0zzBey-x3ulLQ",
+    client_secret=os.getenv("PRAW_SECRET"),
     user_agent="Mozilla/5.0 (X11; CrOS x86_64 15633.69.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.212 Safari/537.36",
 )
 
-def redditScraper(subReddit, amountOfPosts=100, topOfWhat='month'):
+def redditScraper(subReddit, amountOfPosts=10, topOfWhat='day'):
     listOfPosts = []
     for submission in reddit.subreddit(subReddit).top(topOfWhat, limit=amountOfPosts):
         
         post_obj = {}
         post_obj["url"] = submission.url
         post_obj["id"] = submission.id
-        post_obj["author"] = submission.author.name
+        post_obj["author"] = submission.author.name if submission.author else None,
         post_obj["domain"] = submission.domain
         post_obj["created"] = submission.created
         post_obj["created_utc"] = submission.created_utc
@@ -160,7 +160,7 @@ def get_tag():
         )   
     with col2:
         num_items = st.number_input(
-            "Number of items", step=1, min_value=3
+            "Number of items", step=1, min_value=1
         )
     return input_text,num_items
 
