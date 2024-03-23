@@ -10,7 +10,7 @@
     import { generationStore } from "./lib/generation.store";
 
     let ragMode = false;
-    let question = "How can I calculate age from date of birth in Cypher?";
+    let question = "What to people think of kate middleton?";
     let shouldAutoScroll = true;
     let input;
     let senderImages = { bot: botImage, me: meImage };

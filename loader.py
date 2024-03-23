@@ -37,7 +37,7 @@ create_constraints(neo4j_graph)
 create_vector_index(neo4j_graph, dimension)
 reddit = praw.Reddit(
     client_id=os.getenv("PRAW_ID"),
-    client_secret=os.getenv("PRAW_SECRET"),
+    client_secret="yYuIt0aDZe2OSB54Z0zzBey-x3ulLQ",
     user_agent="Mozilla/5.0 (X11; CrOS x86_64 15633.69.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.212 Safari/537.36",
 )
 

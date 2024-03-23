@@ -10,7 +10,7 @@ from chains import (
     load_embedding_model,
     load_llm,
     configure_llm_only_chain,
-    configure_qa_rag_chain,
+    configure_comment_chain,
     generate_ticket,
 )
 from fastapi import FastAPI, Depends
@@ -49,7 +49,7 @@ llm = load_llm(
 )
 
 llm_chain = configure_llm_only_chain(llm)
-rag_chain = configure_qa_rag_chain(
+rag_chain = configure_comment_chain(
     llm, embeddings, embeddings_store_url=url, username=username, password=password
 )
 
@@ -124,7 +124,7 @@ def qstream(question: Question = Depends()):
         output_function = rag_chain
 
     q = Queue()
-    
+
     def cb():
         output_function(
             {"question": question.text, "chat_history": []},
