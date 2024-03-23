@@ -156,7 +156,7 @@ def get_tag():
     col1, col2 = st.columns(2)
     with col1:
         input_text = st.text_input(
-            "Which tag questions do you want to import?", value="neo4j"
+            "Which subreddits do you want to import?", value="neo4j"
         )   
     with col2:
         num_items = st.number_input(
@@ -185,7 +185,7 @@ def render_page():
             except Exception as e:
                 print(e)
                 st.error(f"Error: {traceback.format_exc()}", icon="🚨")
-    with st.expander("Highly SO questions rather than tags?"):
+    with st.expander("Highly Stack overflow questions rather than reddit?"):
         if st.button("Import highly ranked questions"):
             with st.spinner("Loading... This might take a minute or two."):
                 try:

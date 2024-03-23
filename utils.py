@@ -37,11 +37,26 @@ def create_vector_index(driver, dimension: int) -> None:
         driver.query(index_query, {"dimension": dimension})
     except:  # Already exists
         pass
-
+    index_query = "CALL db.index.vector.createNodeIndex('top_comments', 'Comment', 'embedding', $dimension, 'cosine')"
+    try:
+        driver.query(index_query, {"dimension": dimension})
+    except:  # Already exists
+        pass
+    index_query = "CALL db.index.vector.createNodeIndex('submissions', 'Submission', 'embedding', $dimension, 'cosine')"
+    try:
+        driver.query(index_query, {"dimension": dimension})
+    except:  # Already exists
+        pass
 
 def create_constraints(driver):
     driver.query(
         "CREATE CONSTRAINT question_id IF NOT EXISTS FOR (q:Question) REQUIRE (q.id) IS UNIQUE"
+    )
+    driver.query(
+        "CREATE CONSTRAINT submission_id IF NOT EXISTS FOR (s:Submission) REQUIRE (s.id) IS UNIQUE"
+    )
+    driver.query(
+        "CREATE CONSTRAINT comment_id IF NOT EXISTS FOR (c:Comment) REQUIRE (c.id) IS UNIQUE"
     )
     driver.query(
         "CREATE CONSTRAINT answer_id IF NOT EXISTS FOR (a:Answer) REQUIRE (a.id) IS UNIQUE"
