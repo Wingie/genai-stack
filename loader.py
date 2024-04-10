@@ -82,30 +82,16 @@ def get_transcript(video_id):
             return ' '.join([i['text'] for i in manual_transcript.fetch()])
     except Exception as e:
         logger.error("failed en language for youtube.com/video/{}".format(video_id))
-
+    
     # 2. Generated English transcripts (if available)
     generated_en_transcript = transcript_list.find_generated_transcript(['en-US','en'])
     if generated_en_transcript:
-        return ' '.join([i['text'] for i in generated_en_transcript.fetch()])
-    generated_en_transcript = transcript_list.find_generated_transcript(['en','en-US'])
-    if generated_en_transcript:
-        return ' '.join([i['text'] for i in generated_en_transcript.fetch()])
+        text = ' '.join([i['text'] for i in generated_en_transcript.fetch()])
+    return text
 
-    # 3. Fallback: Try all languages (may be less accurate)
-    for transcript in transcript_list:
-        try:
-            fetched_transcript = transcript.fetch()
-            return ' '.join([i['text'] for i in fetched_transcript])
-        except youtube_transcript_api._errors.NoTranscriptFound:
-            continue  # Try the next transcript if this one fails
-
-    # If all methods fail:
-    logger.info("##### NONE? #####")
-    return None
-
-def redditScraper(subReddit, amountOfPosts=250, topOfWhat='day'):
+def redditScraper(subReddit, amountOfPosts=250, topOfWhat='month'):
     listOfPosts = []
-    for submission in reddit.subreddit(subReddit).top(topOfWhat, limit=amountOfPosts):
+    for submission in reddit.subreddit(subReddit).top(time_filter=topOfWhat, limit=amountOfPosts):
         logger.info("Submission processing for {}".format(submission.url))
         post_obj = {}
         post_obj["url"] = submission.url
@@ -119,8 +105,11 @@ def redditScraper(subReddit, amountOfPosts=250, topOfWhat='day'):
         video_id = extract_video_id(submission.url) # also means video passes yt regex check
         downloaded = extract(fetch_url(submission.url)) # if web page, here we will have "main-ish" text
         if video_id is not None:
-            transcript = extract(get_transcript(video_id)) 
-            post_obj["content"] = transcript # put transcript into content
+            try:
+                transcript = get_transcript(video_id)
+                post_obj["content"] = transcript # put transcript into content
+            except Exception as e:
+                logger.info
         else:
             post_obj["content"] = downloaded
         post_obj["score"] = submission.upvote_ratio
@@ -141,7 +130,7 @@ def load_sub_data(subreddit: str = "news", page: int = 100) -> None:
     insert_reddit_data(data)
 
 def insert_reddit_data(data) -> None:
-    logger.info("Inserting {}".format(len(data)))
+    logger.info("Inserting {}".format((data)))
     for q in data:
         question_text = q["title"] + "\n" + q["selftext"]
         q["embedding"] = embeddings.embed_query(question_text)
@@ -177,6 +166,7 @@ def load_high_score_so_data() -> None:
     insert_so_data(data)
 
 def insert_so_data(data: dict) -> None:
+    logger.info(data)
     # Calculate embedding values for questions and answers
     for q in data["items"]:
         question_text = q["title"] + "\n" + q["body_markdown"]
