@@ -11,6 +11,10 @@ import praw
 from trafilatura import fetch_url, extract
 import traceback
 import sys
+from youtube_transcript_api import YouTubeTranscriptApi
+import youtube_transcript_api
+
+import re
 
 load_dotenv(".env")
 
@@ -41,10 +45,68 @@ reddit = praw.Reddit(
     user_agent="Mozilla/5.0 (X11; CrOS x86_64 15633.69.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.212 Safari/537.36",
 )
 
-def redditScraper(subReddit, amountOfPosts=10, topOfWhat='day'):
+
+def extract_video_id(url):
+    """Extracts the video ID from a YouTube URL (youtube.com or youtu.be)."""
+
+    # Regex patterns for different YouTube URL formats
+    youtube_regex = [
+        r'(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/watch\?v=([a-zA-Z0-9\-_]+)',
+        r'(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/(?:embed\/|v\/|e\/)?([a-zA-Z0-9\-_]+)'
+    ]
+
+    for pattern in youtube_regex:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    return None  # If no match is found
+
+
+def get_transcript(video_id):
+    """
+    Attempts to get a video transcript using multiple methods, prioritizing reliability.
+
+    Args:
+        video_id: The YouTube video ID.
+
+    Returns:
+        The transcript text if successful, otherwise None.
+    """
+
+    transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+    # 1. Manually created (if available)
+    try:
+        manual_transcript = transcript_list.find_manually_created_transcript(['en','en-US'])
+        if manual_transcript:
+            return ' '.join([i['text'] for i in manual_transcript.fetch()])
+    except Exception as e:
+        logger.error("failed en language for youtube.com/video/{}".format(video_id))
+
+    # 2. Generated English transcripts (if available)
+    generated_en_transcript = transcript_list.find_generated_transcript(['en-US','en'])
+    if generated_en_transcript:
+        return ' '.join([i['text'] for i in generated_en_transcript.fetch()])
+    generated_en_transcript = transcript_list.find_generated_transcript(['en','en-US'])
+    if generated_en_transcript:
+        return ' '.join([i['text'] for i in generated_en_transcript.fetch()])
+
+    # 3. Fallback: Try all languages (may be less accurate)
+    for transcript in transcript_list:
+        try:
+            fetched_transcript = transcript.fetch()
+            return ' '.join([i['text'] for i in fetched_transcript])
+        except youtube_transcript_api._errors.NoTranscriptFound:
+            continue  # Try the next transcript if this one fails
+
+    # If all methods fail:
+    logger.info("##### NONE? #####")
+    return None
+
+def redditScraper(subReddit, amountOfPosts=250, topOfWhat='day'):
     listOfPosts = []
     for submission in reddit.subreddit(subReddit).top(topOfWhat, limit=amountOfPosts):
-        
+        logger.info("Submission processing for {}".format(submission.url))
         post_obj = {}
         post_obj["url"] = submission.url
         post_obj["id"] = submission.id
@@ -54,25 +116,32 @@ def redditScraper(subReddit, amountOfPosts=10, topOfWhat='day'):
         post_obj["created_utc"] = submission.created_utc
         post_obj["title"] = submission.title
         post_obj["selftext"] = submission.selftext
-        downloaded = fetch_url(submission.url)
-        post_obj["content"] = extract(downloaded)
+        video_id = extract_video_id(submission.url) # also means video passes yt regex check
+        downloaded = extract(fetch_url(submission.url)) # if web page, here we will have "main-ish" text
+        if video_id is not None:
+            transcript = extract(get_transcript(video_id)) 
+            post_obj["content"] = transcript # put transcript into content
+        else:
+            post_obj["content"] = downloaded
         post_obj["score"] = submission.upvote_ratio
         submission.comments.replace_more(limit=0)
         post_obj["comments"] = [{'author':comment.author.name if comment.author else "unknown", 
                                 'text': comment.body, 
                                 'ups': comment.ups } for comment in submission.comments if comment.ups > 100
                                 ]
-                                                                
+                                                
         listOfPosts.append(post_obj)
 
     print ("Grabbed " + str(len(listOfPosts)) + " posts from r/" + subReddit)
     return listOfPosts
 
-def load_sub_data(subreddit: str = "news", page: int = 1) -> None:
-    data = redditScraper(subreddit)
+def load_sub_data(subreddit: str = "news", page: int = 100) -> None:
+    data = redditScraper(subreddit, page)
+    logger.info("#### Loadin {} items".format(len(data)))
     insert_reddit_data(data)
 
 def insert_reddit_data(data) -> None:
+    logger.info("Inserting {}".format(len(data)))
     for q in data:
         question_text = q["title"] + "\n" + q["selftext"]
         q["embedding"] = embeddings.embed_query(question_text)
@@ -148,7 +217,9 @@ def insert_so_data(data: dict) -> None:
                   owner.reputation = q.owner.reputation
     MERGE (owner)-[:ASKED]->(question)
     """
-    neo4j_graph.query(import_query, {"data": data["items"]})
+    result = neo4j_graph.query(import_query, {"data": data["items"]})
+    logger.info(">>>>>",result)
+    
 
 
 # Streamlit
@@ -156,11 +227,11 @@ def get_tag():
     col1, col2 = st.columns(2)
     with col1:
         input_text = st.text_input(
-            "Which subreddits do you want to import?", value="neo4j"
+            "Which subreddits do you want to import?", value="videos"
         )   
     with col2:
         num_items = st.number_input(
-            "Number of items", step=1, min_value=1
+            "Number of items", step=10, min_value=5
         )
     return input_text,num_items
 
@@ -171,6 +242,7 @@ def render_page():
     st.caption("Go to http://localhost:7474/ to explore the graph.")
 
     user_input,num_items = get_tag()
+    logger.info("{}-----{}".format(user_input, num_items))
     # num_pages, start_page = get_pages()
 
     if st.button("Import", type="primary"):

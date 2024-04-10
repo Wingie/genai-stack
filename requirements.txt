@@ -24,3 +24,6 @@ xvfbwrapper
 xmltodict
 praw
 trafilatura
+lxml_html_clean
+google-cloud-storage
+youtube-transcript-api
