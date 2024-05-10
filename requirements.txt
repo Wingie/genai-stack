@@ -27,3 +27,6 @@ trafilatura
 lxml_html_clean
 google-cloud-storage
 youtube-transcript-api
+crewai_tools
+crewai
+langchain_mistralai

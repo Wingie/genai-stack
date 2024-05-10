@@ -1,0 +1,8 @@
+regions:
+- global
+
+account-blocklist:
+- "999999999999" # leave it as it is, since the current version wont work if you don't provide a blocklist
+
+accounts:
+  "534562264870": {} 

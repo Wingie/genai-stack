@@ -5,3 +5,4 @@ embedding_model/*
 .DS_Store
 Youddit-Public/
 __pycache__/
+wikivoyage_data_load/
